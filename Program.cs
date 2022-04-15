@@ -2,18 +2,17 @@
 {
     class Program
     {
-
         public static List<Option> options;
         static void Main(string[] args)
         {
             Console.Title = "UNKCode compiler";
 
-            // Create options that you want your menu to have
+            // Menu options
             options = new List<Option>
             {
-                new Option("Thing", () => WriteTemporaryMessage("Hi")),
-                new Option("Another Thing", () =>  WriteTemporaryMessage("How Are You")),
-                new Option("Yet Another Thing", () =>  WriteTemporaryMessage("Today")),
+                new Option("Obfuscate & Compile files", () => WriteTemporaryMessage("Hi")),
+                new Option("Compile files", () => WriteTemporaryMessage("Hi")),
+                new Option("Code obfuscation", () =>  WriteTemporaryMessage("How Are You")),
                 new Option("Exit", () => Environment.Exit(0)),
             };
 
@@ -56,7 +55,6 @@
             while (keyinfo.Key != ConsoleKey.X);
 
             Console.ReadKey();
-
         }
 
         // Default action of all the options. You can create more methods
@@ -68,24 +66,26 @@
             WriteMenu(options, options.First());
         }
 
-
+        static void ShowBanner()
+        {
+            Console.WriteLine("\n");
+            Console.WriteLine(@"  _   _   _   _   _  __   ____               _                                               _   _               ");
+            Console.WriteLine(@" | | | | | \ | | | |/ /  / ___|   ___     __| |   ___      ___    ___    _ __ ___    _ __   (_) | |   ___   _ __ ");
+            Console.WriteLine(@" | | | | |  \| | | ' /  | |      / _ \   / _` |  / _ \    / __|  / _ \  | '_ ` _ \  | '_ \  | | | |  / _ \ | '__|");
+            Console.WriteLine(@" | |_| | | |\  | | . \  | |___  | (_) | | (_| | |  __/   | (__  | (_) | | | | | | | | |_) | | | | | |  __/ | |   ");
+            Console.WriteLine(@"  \___/  |_| \_| |_|\_\  \____|  \___/   \__,_|  \___|    \___|  \___/  |_| |_| |_| | .__/  |_| |_|  \___| |_|   ");
+            Console.WriteLine(@"                                                                                    |_|                          ");
+            Console.WriteLine("\n");
+            Console.WriteLine("electron - js - compiler");
+            Console.WriteLine("compile your js files for electron application");
+            Console.WriteLine("\n");
+        }
 
         static void WriteMenu(List<Option> options, Option selectedOption)
         {
             Console.Clear();
 
-            Console.WriteLine("\n");
-            Console.WriteLine("  _   _   _   _   _  __   ____               _                                               _   _               ");
-            Console.WriteLine(" | | | | | \\ | | | |/ /  / ___|   ___     __| |   ___      ___    ___    _ __ ___    _ __   (_) | |   ___   _ __ ");
-            Console.WriteLine(" | | | | |  \\| | | ' /  | |      / _ \\   / _` |  / _ \\    / __|  / _ \\  | '_ ` _ \\  | '_ \\  | | | |  / _ \\ | '__|");
-            Console.WriteLine(" | |_| | | |\\  | | . \\  | |___  | (_) | | (_| | |  __/   | (__  | (_) | | | | | | | | |_) | | | | | |  __/ | |   ");
-            Console.WriteLine("  \\___/  |_| \\_| |_|\\_\\  \\____|  \\___/   \\__,_|  \\___|    \\___|  \\___/  |_| |_| |_| | .__/  |_| |_|  \\___| |_|   ");
-            Console.WriteLine("                                                                                    |_|                          ");
-            Console.WriteLine("\n");
-            Console.WriteLine("electron - js - compiler");
-            Console.WriteLine("compile your js files for electron application");
-            Console.WriteLine("\n");
-
+            ShowBanner();
 
             foreach (Option option in options)
             {
