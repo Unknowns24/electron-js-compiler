@@ -10,7 +10,7 @@
             // Menu options
             options = new List<Option>
             {
-                new Option("Obfuscate & Compile files", () => WriteTemporaryMessage("Hi")),
+                new Option("Obfuscate & Compile files", () => CompileAndObfuscate()),
                 new Option("Compile files", () => WriteTemporaryMessage("Hi")),
                 new Option("Code obfuscation", () =>  WriteTemporaryMessage("How Are You")),
                 new Option("Exit", () => Environment.Exit(0)),
@@ -57,13 +57,10 @@
             Console.ReadKey();
         }
 
-        // Default action of all the options. You can create more methods
-        static void WriteTemporaryMessage(string message)
+        static string AskForSomething(string message)
         {
-            Console.Clear();
             Console.WriteLine(message);
-            Thread.Sleep(3000);
-            WriteMenu(options, options.First());
+            return Console.ReadLine() ?? "";
         }
 
         static void ShowBanner()
@@ -79,6 +76,130 @@
             Console.WriteLine("electron - js - compiler");
             Console.WriteLine("compile your js files for electron application");
             Console.WriteLine("\n");
+        }
+
+        static string[] ScanJsFiles(string path, bool withIndex, string? indexPath)
+        {
+            string[] files = Directory.GetFiles(path);
+            string[] jsFiles = {}; 
+            foreach (var file in files)
+            {
+                if (!withIndex)
+                {
+                    if (file == indexPath)
+                        continue;
+                }
+
+                if (file.Contains(".js"))
+                {
+                    jsFiles.Append(file);
+                }
+            }
+
+            return jsFiles;
+        }
+
+
+        static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+        {
+            var dir = new DirectoryInfo(sourceDir);
+
+            if (!dir.Exists)
+            {
+                throw new Exception("\n[ERROR]: The project directory path was not found");
+            }
+
+            var finalDir = new DirectoryInfo(destinationDir);
+
+            if (finalDir.Exists)
+            {
+                throw new Exception("\n[ERROR]: There is alredy a compiled folder");
+            }
+
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            Directory.CreateDirectory(destinationDir);
+
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                string targetFilePath = Path.Combine(destinationDir, file.Name);
+                file.CopyTo(targetFilePath);
+            }
+
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    if (subDir.Name == ".git") continue;
+                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                    CopyDirectory(subDir.FullName, newDestinationDir, true);
+                }
+            }
+        }
+
+        // Creating main functions
+        static void CompileAndObfuscate()
+        {
+            try
+            {
+                Console.Clear();
+                ShowBanner();
+
+                string projectPath = AskForSomething("insert the project full path:");
+                Console.WriteLine("\n");
+                string mainFile = AskForSomething("insert the index file full path:");
+                
+                string projectDir = Path.GetFileName(projectPath) ?? "";
+
+                if (projectDir == "")
+                {
+                    throw new Exception("[ERROR]: Cannot Getting project directory name");
+                }
+            
+                if (!File.Exists(mainFile))
+                {
+                    throw new Exception("[ERROR]: Index file does not exists");
+                }
+
+                string compiledPath = projectPath.Replace(projectDir, "compiledProject");
+                string compiledIndex = mainFile.Replace(projectDir, "compiledProject");
+
+                Console.Clear();
+                ShowBanner();
+
+                Console.WriteLine("- Creating a copy of the project on: " + $"{compiledPath}\n");
+
+                CopyDirectory(projectPath, compiledPath, true);
+
+                Console.WriteLine("- Project copied successfully \n");
+                Console.WriteLine("- Searching JavaScript files on the project \n");
+
+                string[] jsFiles = ScanJsFiles(compiledPath, false, compiledIndex);
+
+                foreach (var file in jsFiles)
+                {
+                    Console.WriteLine(file);
+                }
+
+                Console.WriteLine("- Obfuscating");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("\n Program restarting on 3 seconds");
+                Thread.Sleep(3000);
+                WriteMenu(options, options.First());
+            }
+        }
+
+
+        // Default action of all the options. You can create more methods
+        static void WriteTemporaryMessage(string message)
+        {
+            Console.Clear();
+            Console.WriteLine(message);
+            Thread.Sleep(3000);
+            WriteMenu(options, options.First());
         }
 
         static void WriteMenu(List<Option> options, Option selectedOption)
