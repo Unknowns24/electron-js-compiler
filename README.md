@@ -5,6 +5,5 @@ electron-js-compiler is a console application that uses ``bytenode`` for the com
 ### Dependencies
 - Bytenode as global `npm install -g bytenode`
 - Browserfy as global `npm install -g browserfy`
-- Browserify-fs on project `npm install browserify-fs`
 ### License
 This project is under a [MIT](https://github.com/Unknowns24/electron-js-compiler/blob/main/LICENSE) license
