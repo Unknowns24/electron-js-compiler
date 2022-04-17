@@ -11,8 +11,8 @@
             options = new List<Option>
             {
                 new Option("Obfuscate & Compile files", () => CompileAndObfuscate()),
-                new Option("Compile files", () => WriteTemporaryMessage("Hi")),
-                new Option("Code obfuscation", () =>  WriteTemporaryMessage("How Are You")),
+                new Option("Compile files", () => Compile()),
+                new Option("Code obfuscation", () =>  Obfuscate()),
                 new Option("Exit", () => Environment.Exit(0)),
             };
 
@@ -80,23 +80,27 @@
 
         static string[] ScanJsFiles(string path, bool withIndex, string? indexPath)
         {
-            string[] files = Directory.GetFiles(path);
-            string[] jsFiles = {}; 
+            string[] files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
+            List<string> jsFiles = new List<string>();
+
             foreach (var file in files)
             {
+                if (file.Contains("node_modules"))
+                    continue;
+
                 if (!withIndex)
                 {
                     if (file == indexPath)
                         continue;
                 }
 
-                if (file.Contains(".js"))
+                if (file.Contains(".js") && !file.Contains(".json"))
                 {
-                    jsFiles.Append(file);
+                    jsFiles.Add(file);
                 }
             }
 
-            return jsFiles;
+            return jsFiles.ToArray();
         }
 
 
@@ -138,7 +142,7 @@
         }
 
         // Creating main functions
-        static void CompileAndObfuscate()
+        static string[] MainProcess()
         {
             try
             {
@@ -176,12 +180,9 @@
 
                 string[] jsFiles = ScanJsFiles(compiledPath, false, compiledIndex);
 
-                foreach (var file in jsFiles)
-                {
-                    Console.WriteLine(file);
-                }
+                Console.WriteLine($"- Founded {jsFiles.Length} JavaScript files \n");
 
-                Console.WriteLine("- Obfuscating");
+                return jsFiles;
             }
             catch (Exception ex)
             {
@@ -189,9 +190,28 @@
                 Console.WriteLine("\n Program restarting on 3 seconds");
                 Thread.Sleep(3000);
                 WriteMenu(options, options.First());
+                string[] files = new string[0];
+                return files;
             }
         }
 
+        static void CompileAndObfuscate()
+        {
+            string[] jsFiles = MainProcess();
+            if (jsFiles.Length > 0) return;
+        }
+
+        static void Compile()
+        {
+            string[] jsFiles = MainProcess();
+            if (jsFiles.Length > 0) return;
+        }
+
+        static void Obfuscate()
+        {
+            string[] jsFiles = MainProcess();
+            if (jsFiles.Length > 0) return;
+        }
 
         // Default action of all the options. You can create more methods
         static void WriteTemporaryMessage(string message)
