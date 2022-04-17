@@ -3,6 +3,9 @@
     class Program
     {
         public static List<Option> options;
+        public static string IndexFile;
+        public static string Project;
+
         static void Main(string[] args)
         {
             Console.Title = "UNKCode compiler";
@@ -167,6 +170,8 @@
 
                 string compiledPath = projectPath.Replace(projectDir, "compiledProject");
                 string compiledIndex = mainFile.Replace(projectDir, "compiledProject");
+                IndexFile = compiledIndex;
+                Project = compiledPath;
 
                 Console.Clear();
                 ShowBanner();
@@ -204,7 +209,9 @@
         static void Compile()
         {
             string[] jsFiles = MainProcess();
-            if (jsFiles.Length > 0) return;
+            if (jsFiles.Length <= 0) return;
+            Console.WriteLine("- Compiling files");
+            CompileFiles(jsFiles);
         }
 
         static void Obfuscate()
@@ -213,7 +220,42 @@
             if (jsFiles.Length > 0) return;
         }
 
-        // Default action of all the options. You can create more methods
+        // Main function Logic 
+        static void CompileFiles(string[] files)
+        {
+            if (IndexFile == null)
+            {
+                WriteTemporaryMessage("[ERROR]: Index file is null");
+                return;
+            }
+
+            if (Project == null)
+            {
+                WriteTemporaryMessage("[ERROR]: Project path is null");
+                return;
+            }
+
+            foreach (string file in files)
+            {
+                File.WriteAllText(file, File.ReadAllText(file).Replace(".js", ".jsc"));
+                
+                if (Environment.OSVersion.Platform.ToString().Contains("Win32"))
+                {
+                    System.Diagnostics.Process process = new System.Diagnostics.Process();
+                    System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+                    startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                    startInfo.FileName = "cmd.exe";
+                    startInfo.Arguments = $"/C cd {Project} & bytenode -c {file.Replace(Project, "./")}";
+                    process.StartInfo = startInfo;
+                    process.Start();
+                    process.WaitForExit();
+                }
+
+                File.Delete(file);
+            }
+        }
+
+        // Menu functions
         static void WriteTemporaryMessage(string message)
         {
             Console.Clear();
