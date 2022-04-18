@@ -13,9 +13,7 @@
             // Menu options
             options = new List<Option>
             {
-                new Option("Obfuscate & Compile files", () => CompileAndObfuscate()),
                 new Option("Compile files", () => Compile()),
-                new Option("Code obfuscation", () =>  Obfuscate()),
                 new Option("Exit", () => Environment.Exit(0)),
             };
 
@@ -200,24 +198,12 @@
             }
         }
 
-        static void CompileAndObfuscate()
-        {
-            string[] jsFiles = MainProcess();
-            if (jsFiles.Length > 0) return;
-        }
-
         static void Compile()
         {
             string[] jsFiles = MainProcess();
             if (jsFiles.Length <= 0) return;
             Console.WriteLine("- Compiling files");
             CompileFiles(jsFiles);
-        }
-
-        static void Obfuscate()
-        {
-            string[] jsFiles = MainProcess();
-            if (jsFiles.Length > 0) return;
         }
 
         // Main function Logic 
@@ -234,7 +220,32 @@
                 WriteTemporaryMessage("[ERROR]: Project path is null");
                 return;
             }
+            
+            string[] indexContent = File.ReadAllLines(IndexFile);
+            string newIndexContent = "";
+            List<string> exportName = new List<string>(); 
 
+            foreach (string line in indexContent)
+            {
+                if (string.IsNullOrEmpty(line)) continue;
+                if (line.Contains("require") & line.Contains("./") & !line.Contains("{"))
+                {
+                    exportName.Add(line.Split("=")[0].Split(" ")[1]);
+                }
+                else
+                {
+                    newIndexContent += line + "\n";
+                }
+            }
+
+            foreach (string name in exportName)
+            {
+                newIndexContent = newIndexContent.Replace($"{name}.", "");
+            }
+
+            //File.WriteAllText(IndexFile, newIndexContent);
+
+            /*
             foreach (string file in files)
             {
                 File.WriteAllText(file, File.ReadAllText(file).Replace(".js", ".jsc"));
@@ -253,6 +264,7 @@
 
                 File.Delete(file);
             }
+            */
         }
 
         // Menu functions
