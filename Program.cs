@@ -5,6 +5,7 @@
         public static List<Option> options;
         public static string IndexFile;
         public static string Project;
+        public static string ignoreFile = "";
 
         static void Main(string[] args)
         {
@@ -81,11 +82,37 @@
 
         static string[] ScanJsFiles(string path, bool withIndex, string? indexPath)
         {
+            List<string> ignoreFiles = new List<string>();
+            
+
+            if (File.Exists(ignoreFile))
+            {
+                string[] ignoreFileContent = File.ReadAllLines(ignoreFile);
+                foreach (string line in ignoreFileContent)
+                {
+                    ignoreFiles.Add(line);
+                }
+            }
+
             string[] files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
             List<string> jsFiles = new List<string>();
 
             foreach (var file in files)
             {
+                bool ignoreThisFile = false;
+
+                foreach (var ignore in ignoreFiles)
+                {
+                    if (file == ignore)
+                    {
+                        ignoreThisFile = true;
+                        break;
+                    }
+                }
+
+                if (ignoreThisFile)
+                    continue;
+
                 if (file.Contains("node_modules"))
                     continue;
 
@@ -179,6 +206,17 @@
                 CopyDirectory(projectPath, compiledPath, true);
 
                 Console.WriteLine("- Project copied successfully \n");
+
+                Console.WriteLine("- Checking for .unkignore files in project \n");
+
+                ignoreFile = $"{compiledPath}/.unkignore";
+
+                if (File.Exists(ignoreFile))
+                {
+                    Console.WriteLine("- A .unkignore file was founded \n");
+                    File.WriteAllText(ignoreFile, File.ReadAllText(ignoreFile).Replace(projectDir, "compiledProject"));
+                }
+
                 Console.WriteLine("- Searching JavaScript files on the project \n");
 
                 string[] jsFiles = ScanJsFiles(compiledPath, false, compiledIndex);
@@ -202,69 +240,134 @@
         {
             string[] jsFiles = MainProcess();
             if (jsFiles.Length <= 0) return;
-            Console.WriteLine("- Compiling files");
+            Console.WriteLine("- Creating a Bundle file");
             CompileFiles(jsFiles);
         }
 
         // Main function Logic 
         static void CompileFiles(string[] files)
         {
+            // Check index file integrity
             if (IndexFile == null)
             {
                 WriteTemporaryMessage("[ERROR]: Index file is null");
                 return;
             }
-
+            
+            // Check Project path integrity
             if (Project == null)
             {
                 WriteTemporaryMessage("[ERROR]: Project path is null");
                 return;
             }
             
+            // Initial variables
             string[] indexContent = File.ReadAllLines(IndexFile);
             string newIndexContent = "";
             List<string> exportName = new List<string>(); 
+            List<string> fileExports = new List<string>();
+            List<string> indexExports = new List<string>();
 
+            // Inspect every line of index content
             foreach (string line in indexContent)
             {
                 if (string.IsNullOrEmpty(line)) continue;
-                if (line.Contains("require") & line.Contains("./") & !line.Contains("{"))
+                if (line.Contains("require") & line.Contains("./") & !line.Contains("{")) // If line is requiring a local file 
                 {
-                    exportName.Add(line.Split("=")[0].Split(" ")[1]);
+                    exportName.Add(line.Split("=")[0].Split(" ")[1]); // Get the name of the export and add it to exportName list
+                }
+                else if (line.Contains("require") & !line.Contains("./")) // If line is requiring a glob file like fs or electron
+                {
+                    indexExports.Add(line); // Get the name of the export and add it to indexExports list 
+                    newIndexContent += line + "\n"; // If line is requiring globs add line to the new index content
                 }
                 else
                 {
-                    newIndexContent += line + "\n";
+                    newIndexContent += line + "\n"; // If line is not requiring anything add line to the new index content
                 }
             }
 
+            // Get local exports and replace the call to the export to nothing
+            // This is beacause all local files content and functions will be on the index file
+            /*
+             * Example: This will be replaced
+             * 
+             * const module1 = require("./module1")
+             * function hello() {
+             *      module1.someFunction();
+             * }
+             * 
+             * to this:
+             * function hello() {
+             *    someFunction();
+             * }
+             * 
+             */
             foreach (string name in exportName)
             {
                 newIndexContent = newIndexContent.Replace($"{name}.", "");
             }
 
-            //File.WriteAllText(IndexFile, newIndexContent);
 
-            /*
+            // Inspect every js file admited
             foreach (string file in files)
             {
-                File.WriteAllText(file, File.ReadAllText(file).Replace(".js", ".jsc"));
-                
-                if (Environment.OSVersion.Platform.ToString().Contains("Win32"))
+                string[] fileContent = File.ReadAllLines(file); 
+                string newFileContent = "";
+                List<string> exports = new List<string>();
+
+                // Inspect every file line
+                foreach (string line in fileContent)
                 {
-                    System.Diagnostics.Process process = new System.Diagnostics.Process();
-                    System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-                    startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                    startInfo.FileName = "cmd.exe";
-                    startInfo.Arguments = $"/C cd {Project} & bytenode -c {file.Replace(Project, "./")}";
-                    process.StartInfo = startInfo;
-                    process.Start();
-                    process.WaitForExit();
+                    if (string.IsNullOrEmpty(line)) continue; // If line is empty continue with next
+
+                    if (line.Contains("require") & line.Contains("./") & !line.Contains("{")) // If line is requiring a local file 
+                    {
+                        exports.Add(line.Split("=")[0].Split(" ")[1]); // Get the name of the export and add it to exports list
+                    }
+                    else if (line.Contains("require") & !line.Contains("./")) // If line is requiring a glob file like fs or electron
+                    {
+                        fileExports.Add(line); // Get the name of the export and add it to fileExports list where we will check what is alredy exported on index file content
+                    }
+                    else if(!line.Contains("require")) // If there is not a require line add it to newFileContent to create file 
+                    {
+                        newFileContent += line + "\n";
+                    }
                 }
 
-                File.Delete(file);
+                // Get local exports and replace the call to the export to nothing
+                // This is beacause all local files content and functions will be on the index file
+                foreach (string name in exports) 
+                {
+                    newFileContent = newFileContent.Replace($"{name}.", "");
+                }
+
+                newIndexContent += "\n" + newFileContent; // Add file content to index file
+                File.Delete(file); // Delete file
             }
-            */
+
+            // Check exports to prevent duplicate require files
+            foreach (string export in fileExports)
+            {
+                bool exist = false;
+
+                // get all existen glob exports on index file and compare with news
+                foreach (string existentExport in indexExports)
+                {
+                    if (export == existentExport)
+                    {
+                        exist = true;
+                    }
+                }
+
+                // if is not exist then add it at the top of the index file content
+                if (!exist)
+                {
+                    newIndexContent = export + "\n" + newIndexContent;
+                }
+            }
+
+            File.WriteAllText(IndexFile, newIndexContent);
         }
 
         // Menu functions
