@@ -4,7 +4,6 @@ this project is oriented to javascript file protection on electron apps by obfus
 electron-js-compiler is a console application that uses ``bytenode`` for the compilation of the js files. This is posible beacause electron use their own version of v8 engine.
 ### Dependencies
 - Bytenode as global `npm install -g bytenode`
-- Browserfy as global `npm install -g browserfy`
 ### How to use
 ...
 ### License
