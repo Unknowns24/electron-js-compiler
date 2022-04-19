@@ -305,6 +305,7 @@
              */
             foreach (string name in exportName)
             {
+                if (name == "config") continue;
                 newIndexContent = newIndexContent.Replace($"{name}.", "");
             }
 
@@ -339,7 +340,6 @@
                 // This is beacause all local files content and functions will be on the index file
                 foreach (string name in exports) 
                 {
-                    //newFileContent = System.Text.RegularExpressions.Regex.Replace(newFileContent, @"([config.])(?!.*?\(\))", "");
                     if (name == "config") continue;
                     newFileContent = newFileContent.Replace($"{name}.", "");
                 }
