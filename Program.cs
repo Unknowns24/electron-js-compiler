@@ -272,7 +272,7 @@
             foreach (string line in indexContent)
             {
                 if (string.IsNullOrEmpty(line)) continue;
-                if (line.Contains("require") & line.Contains("./") & !line.Contains("{")) // If line is requiring a local file 
+                if (line.Contains("require") & line.Contains("./") & !line.Contains(".json") & !line.Contains("{")) // If line is requiring a local file 
                 {
                     exportName.Add(line.Split("=")[0].Split(" ")[1]); // Get the name of the export and add it to exportName list
                 }
@@ -339,6 +339,8 @@
                 // This is beacause all local files content and functions will be on the index file
                 foreach (string name in exports) 
                 {
+                    //newFileContent = System.Text.RegularExpressions.Regex.Replace(newFileContent, @"([config.])(?!.*?\(\))", "");
+                    if (name == "config") continue;
                     newFileContent = newFileContent.Replace($"{name}.", "");
                 }
 
@@ -349,25 +351,78 @@
             // Check exports to prevent duplicate require files
             foreach (string export in fileExports)
             {
-                bool exist = false;
+                bool exists = false;
+                bool componentAdded = false;
 
                 // get all existen glob exports on index file and compare with news
                 foreach (string existentExport in indexExports)
                 {
                     if (export == existentExport)
                     {
-                        exist = true;
+                        exists = true;
+                        break;
+                    }
+
+                    // Get module names by the split of the string
+                    // for example:
+                    // const hello = require("hello") => require("hello") => "hello") => hello
+                    string exportModuleName = export.Split("=")[1].Split("(")[1].Replace(")", "").Replace("\"", "").Replace("'", "").Replace("`", "").Replace(";", "");
+                    string existentModuleName = existentExport.Split("=")[1].Split("(")[1].Replace(")", "").Replace("\"", "").Replace("'", "").Replace("`", "").Replace(";", "");
+
+
+                    // If export conteins the existent module like electron || fs || uid, then..
+                    if (exportModuleName == existentModuleName) 
+                    {
+                        exists = true;
+                        if (export.Contains("{")) 
+                        {
+                            // Get all require components
+                            string[] components = export.Split("=")[0].Replace(" ", "").Replace("const", "").Replace("var", "").Replace("let", "").Replace("{", "").Replace("}", "").Split(",");
+                            string addedComponents = "";
+
+                            // Check if component is alredy required
+                            foreach (string component in components)
+                            {
+                                if (!existentExport.Contains(component))
+                                {
+                                    componentAdded = true;
+                                    
+                                    if (addedComponents == "")
+                                    {
+                                        addedComponents += component;
+                                    } 
+                                    else
+                                    {
+                                        addedComponents += "," + component;
+                                    }
+                                }
+                            }
+
+                            if (componentAdded)
+                            {
+                                indexExports.Remove(existentExport); // Remove this existent export 
+
+                                // Update it on file and list
+                                string updatedExistentExport = existentExport.Replace("{", "{ " + $"{addedComponents}, ");
+                                newIndexContent = newIndexContent.Replace(existentExport, updatedExistentExport);
+                                indexExports.Add(updatedExistentExport);
+                                break;
+                            }
+                        }
                     }
                 }
 
-                // if is not exist then add it at the top of the index file content
-                if (!exist)
+                // if is not exist then add it at the top of the index file content and add it to the list of index exports
+                if (!exists)
                 {
-                    newIndexContent = export + "\n" + newIndexContent;
+                    newIndexContent = export + "\n" + newIndexContent; 
+                    indexExports.Add(export);
                 }
             }
 
             File.WriteAllText(IndexFile, newIndexContent);
+
+            Console.WriteLine("\n- Bundle created");
         }
 
         // Menu functions
