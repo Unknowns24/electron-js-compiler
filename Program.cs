@@ -423,6 +423,69 @@
             File.WriteAllText(IndexFile, newIndexContent);
 
             Console.WriteLine("\n- Bundle created");
+
+            string answer = "";
+            while (answer == "")
+            {
+                string temp = AskForSomething("\nIs index js content correct: (yes) or (no)");
+                Console.WriteLine("\n");
+                if (temp == "yes" || temp == "no")
+                {
+                    answer = temp;
+                    break;
+                }
+            }
+
+            if (answer == "no")
+            {
+                Console.WriteLine("Please fix your bundle or report the issue to: https://github.com/Unknowns24/electron-js-compiler");
+                return;
+            }
+
+            Console.WriteLine("- Compiling js bundle");
+
+            if (Environment.OSVersion.Platform.ToString().Contains("Win32"))
+            {
+                System.Diagnostics.Process process = new System.Diagnostics.Process();
+                System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+                startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                startInfo.FileName = "cmd.exe";
+                startInfo.Arguments = $"/C cd {Project} && bytenode --electron -c ./{Path.GetRelativePath(Project, IndexFile)}";
+                process.StartInfo = startInfo;
+                process.Start();
+                process.WaitForExit();
+            } 
+            else
+            {
+                System.Diagnostics.Process process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "bash",
+                        RedirectStandardInput = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false
+                    }
+                };
+                process.Start();
+                process.StandardInput.WriteLine($"cd {Project} && bytenode --electron -c ./{Path.GetRelativePath(Project, IndexFile)}");
+                process.WaitForExit();
+            }
+
+            Console.WriteLine("\n- Bundle compiled");
+
+            Console.WriteLine("\n- Modifing files");
+
+            Thread.Sleep(5000);
+
+            string IndexFolder = Path.GetFullPath(IndexFile).Replace(Path.GetFileName(IndexFile), "");
+
+            File.WriteAllText(IndexFile, $"const bytenode = require(\"bytenode\");\nconst start = require(\"./main.jsc\");\nstart;");
+            File.Move(Path.GetFullPath(IndexFile).Replace(".js", ".jsc"), $"{IndexFolder}main.jsc");
+
+            Console.WriteLine("\n- Proncess finished");
+            WriteTemporaryMessage("Going back to Menu in 3s");
         }
 
         // Menu functions

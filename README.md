@@ -4,6 +4,9 @@ This project is oriented to javascript file protection on electron apps by combi
 electron-js-compiler is a console application that uses ``bytenode`` for the compilation of the bundle js file. This is posible beacause electron use their own version of v8 engine. If you have more than one js file, the app will combine all js files in just one then the app will compile the bundle file on a jsc file. If you need to ignore a specific file you can do it by adding the file with the full path on a file called `.unkignore` this file needs to be on the root folder of the project.
 ### Dependencies
 - Bytenode as global `npm install -g bytenode`
+- Bytenode in your project `npm install --save bytenode`
+- Electron as global `npm install -g electron`
+- Have the same version of electron global and in your project package.json
 ### Limitations
 To prevent errors on application bundle creating your code needs to follow this requirements:
 
