@@ -6,7 +6,7 @@ electron-js-compiler is a console application that uses ``bytenode`` for the com
 - Bytenode as global `npm install -g bytenode`
 - Bytenode in your project `npm install --save bytenode`
 - Electron as global `npm install -g electron`
-- Have the same version of electron global and in your project package.json
+- Have the same version of electron globally and in your project package.json
 ### Limitations
 To prevent errors on application bundle creating your code needs to follow this requirements:
 
